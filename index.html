@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+	<title>Amercian Dashboard</title>
+	<script src="js/jq.js"></script>
+	<script src="bootstrap/js/bootstrap.min.js"></script>
+	<script src="jqfg/js/jquery.flightindicators.min.js"></script>
+	<link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
+	<script src="js/raphael.min.js"></script>
+	<script src="js/kartograph.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="jqfg/_examples_data/prism/prism.css" />
+	<!-- This page style -->
+	<link rel="stylesheet" type="text/css" href="jqfg/_examples_data/style.css" />
+	<!-- Flight Indicators library styles -->
+	<link rel="stylesheet" type="text/css" href="jqfg/css/flightindicators.css" />
+	<style>
+	body {background-color:#828282;} 
+</style>
+</head>
+<body><br><br>
+	<div class="container-fluid"><div class="row">
+		<div class="col"><div id="horizonte"></div></div>
+		<div class="col"><div id="heading"></div></div>
+		<div class="col"><div  id="vario"></div></div>
+		<div class="col"><div  id="speed"></div></div>
+		<div class="col"><div  id="alt"></div></div>
+
+	</div>
+	<div class="row">
+
+		<div class="col"><div>
+				<div class="instrument vario" style="height: 300px; width: 500px;">
+					<img src="img/fi_box.png" style="margin-left: -30px; width: 100% !important; height: 100% !important; " alt="">
+					<div style="color: #fff; position: absolute; font-size: 120pt; top: 10px; left: 40px" id="t1">MIA<div>
+					
+					</div></div>
+			</div>
+
+	</div>
+
+</div>
+		<div class="col"><div>
+				<div class="instrument vario" style="height: 300px; width: 500px;">
+					<img src="img/fi_box.png" style="margin-left: -30px; width: 100% !important; height: 100% !important; " alt="">
+					<div style="color: #fff; position: absolute; font-size: 120pt; top: 10px; left: 30px" id="t2">MIA<div>
+					
+					</div></div>
+			</div>
+
+	</div>
+
+</div>
+
+		<div class="col"><div>
+				<div class="instrument vario" style="height: 300px; width: 500px;">
+					<img src="img/fi_box.png" style="margin-left: -30px; width: 100% !important; height: 100% !important; " alt="">
+					<div style="color: #fff; position: absolute; font-size: 30pt; top: 30px; left: 30px" id="t3A3">VELOCIDAD MACH<div>
+					<div style="color: #fff; position: absolute; font-size: 80pt; top: 90px; left: 30px" id="t33"><div>
+					
+					</div></div>
+			</div>
+
+		</div></div>
+	</div>
+</div>
+
+</div>
+
+
+
+<div class="row">
+
+		<div class="col"><div>
+				<div class="instrument vario" style="height: 300px; width: 500px;">
+					<img src="img/fi_box.png" style="margin-left: -30px; width: 100% !important; height: 100% !important; " alt="">
+					<div style="color: #fff; position: absolute; font-size: 30pt; top: 30px; left: 30px" id="t3AAA">ETA ATERRIZAJE<div>
+					<div style="color: #fff; position: absolute; font-size: 80pt; top: 90px; left: 30px" id="t5"><div>
+					
+					</div></div>
+			</div>
+
+		</div></div>
+	</div>
+</div>
+
+	<div class="col"><div>
+				<div class="instrument vario" style="height: 300px; width: 500px;">
+					<img src="img/fi_box.png" style="margin-left: -30px; width: 100% !important; height: 100% !important; " alt="">
+					<div style="color: #fff; position: absolute; font-size: 30pt; top: 30px; left: 30px" id="t3A">TIEMPO A DESTINO<div>
+					<div style="color: #fff; position: absolute; font-size: 70pt; top: 90px; left: 30px" id="t3"><div>
+					
+					</div></div>
+			</div>
+
+		</div></div>
+	</div>
+</div>
+
+
+
+
+
+		<div class="col"><div>
+				<div class="instrument vario" style="height: 300px; width: 500px;">
+					<img src="img/fi_box.png" style="margin-left: -30px; width: 100% !important; height: 100% !important; " alt="">
+					<div style="color: #fff; position: absolute; font-size: 30pt; top: 30px; left: 30px" id="t4A">DIST. A DESTINO<div>
+					<div style="color: #fff; position: absolute; font-size: 80pt; top: 90px; left: 30px" id="t4"><div>
+					
+					</div>
+				</div>
+			</div>
+
+	</div>
+
+</div></div>
+
+</div>
+
+</div>
+
+</body>
+
+<script type="text/javascript">
+	var old;
+	var odata={};
+	odata.altitude_feet=0;
+	var oldd;
+	var first_attitude = $.flightIndicator('#horizonte', 'attitude', {size:300, roll:1, pitch:3, showBox : true});
+	var heading = $.flightIndicator('#heading', 'heading', {size:300, heading:150, showBox:true});
+	var variometer = $.flightIndicator('#vario', 'variometer', {size:300, vario:-5, showBox:true});
+	var airspeed = $.flightIndicator('#speed', 'airspeed', {size:300, showBox: true});
+	var altimeter = $.flightIndicator('#alt', 'altimeter',{size:300,size:300, });
+
+    // do something with your map, add layers etc.
+    function update(){
+
+    	$.getJSON("http://services.inflightpanasonic.aero/inflight/services/flightdata/v2/flightdata", function(data){
+
+//$("#bx1").html("Altura: "+data.altitude_feet+"<br>velocidad: "+data.ground_speed_knots+"<br>Tiempo a destino: "+data.time_to_destination_minutes+"<br>Coordenadaas: "+JSON.stringify(data.current_coordinates));
+airspeed.setAirSpeed(data.ground_speed_knots/10);
+altimeter.setAltitude(data.altitude_feet/10);
+heading.setHeading(data.true_heading_degree);
+$("#t1").html(data.departure_iata);
+$("#t2").html(data.destination_iata);
+$("#t3").html(data.time_to_destination_minutes.toString()+"min.");
+$("#t4").html(data.distance_to_destination_nautical_miles);
+$("#t33").html(data.flight_speed_mach);
+$("#t5").html(data.estimated_arrival_time_utc);
+
+if(odata.altitude_feet!=data.altitude_feet){
+
+	variometer.setVario((data.altitude_feet/1000-old/1000)/(Date.now()/1000/60-oldd/1000/60))
+	console.log((data.altitude_feet/1000-old/1000)/(Date.now()/1000/60-oldd/1000/60))
+
+	old=data.altitude_feet;
+	oldd=Date.now();
+	update();
+	odata=data;
+}
+});
+
+
+    }
+    update();
+    setTimeout(update,2435);
+
+</script>
+</html>
