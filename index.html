@@ -106,7 +106,7 @@
 				<div class="instrument vario" style="height: 300px; width: 500px;">
 					<img src="img/fi_box.png" style="margin-left: -30px; width: 100% !important; height: 100% !important; " alt="">
 					<div style="color: #fff; position: absolute; font-size: 30pt; top: 30px; left: 30px" id="t4A">DIST. A DESTINO<div>
-					<div style="color: #fff; position: absolute; font-size: 80pt; top: 90px; left: 30px" id="t4"><div>
+					<div style="color: #fff; position: absolute; font-size: 50pt; top: 50px; left: 20px" id="t4"><div>
 					
 					</div>
 				</div>
@@ -127,8 +127,9 @@
 
 function estimatePitchAndRoll(data1, data2) {
     // Extract relevant data
-    const vspeed1 = data1.flightInfo.vspeed;
-    const vspeed2 = data2.flightInfo.vspeed;
+	const vspeed1 = data1.flightInfo.vspeed * 88 * 0.3048 / 60; // Convert from fpm to m/s
+    const vspeed2 = data2.flightInfo.vspeed * 88 * 0.3048 / 60; // Convert from fpm to m/s
+    
     const hspeed1 = data1.flightInfo.hspeed;
     const hspeed2 = data2.flightInfo.hspeed;
     const course1 = data1.flightInfoFIG2.flight.gps.course;
@@ -138,7 +139,7 @@ function estimatePitchAndRoll(data1, data2) {
 
     // Average speeds for stability
     const avgVSpeed = (vspeed1 + vspeed2) / 2;
-    const avgHSpeed = (hspeed1 + hspeed2) / 2;
+    const avgHSpeed = (hspeed1 + hspeed2) / 2 * 0.44704;
 
     // Pitch Calculation (in degrees)
     const pitch = Math.atan(avgVSpeed / avgHSpeed) * (180 / Math.PI);
@@ -146,14 +147,25 @@ function estimatePitchAndRoll(data1, data2) {
     // Roll Calculation - Simplified estimation
     // Note: This is a very rough estimate, actual roll calculation would require more data
     var g = 9.81;
-    const hSpeedMetersPerSecond = avgHSpeed * 0.514444;
+    const timeInterval = 10; // Time interval in seconds
 
-	const deltaCourse = Math.abs(course1 - course2);
-    const turnRadius = hSpeedMetersPerSecond * hSpeedMetersPerSecond / (g * Math.tan(deltaCourse * Math.PI / 180));
-    const bankAngle = Math.atan(hSpeedMetersPerSecond * hSpeedMetersPerSecond / (turnRadius * g));
+    // Roll Calculation
+    let deltaCourse = Math.abs(course1 - course2);
+
+    // Correcting for wrap-around at 360 degrees
+    if (deltaCourse > 180) {
+        deltaCourse = 360 - deltaCourse;
+    }
+
+    // Adjusting deltaCourse for the 10-second interval
+    const adjustedDeltaCourse = deltaCourse / timeInterval;
+
+    const turnRadius = avgHSpeed * avgHSpeed / (g * Math.tan(adjustedDeltaCourse * Math.PI / 180));
+    const bankAngle = Math.atan(avgHSpeed * avgHSpeed / (turnRadius * g));
     const roll = bankAngle * (180 / Math.PI); // Convert to degrees
 
     return { pitch: pitch.toFixed(2), roll: roll.toFixed(2) };
+
 }
 
 	var old;
@@ -184,10 +196,10 @@ $("#t1").html(data['Response']['flightInfo']['departureAirportCodeIata']);
 $("#t2").html(data['Response']['flightInfo']['destinationAirportCodeIata']);
 $("#t3").html(data['Response']['systemInfo']['timeToLand'].toString()+"min.");
 
-$("#t4").html((Math.round(parseFloat(data['Response'].flightInfoFIG2.flight.gps.calculations.distance_to_arrival)*10)/10).toString());
+$("#t4").html((Math.round(parseFloat(data['Response'].flightInfoFIG2.flight.gps.calculations.distance_to_arrival)*10)/10).toString()+ " NM");
 $("#t33").html(Math.round(data['Response']['systemInfo']['aboveSeaLevel']).toString());
 $("#t5").html(data['Response'].flightInfoFIG2.arrival.time.computed);
-variometer.setVario(data['Response']['systemInfo']['verticalVelocity']);
+variometer.setVario(data['Response']['systemInfo']['verticalVelocity']*88/1000);
 
 pitchAndroll = estimatePitchAndRoll(old['Response'],data['Response']);
 first_attitude.setPitch(pitchAndroll.pitch);
@@ -201,7 +213,7 @@ old=data;
 
     }
     update();
-    setInterval(update,800);
+    setInterval(update,10000);
 
 </script>
 </html>
