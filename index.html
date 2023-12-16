@@ -56,7 +56,7 @@
 		<div class="col"><div>
 				<div class="instrument vario" style="height: 300px; width: 500px;">
 					<img src="img/fi_box.png" style="margin-left: -30px; width: 100% !important; height: 100% !important; " alt="">
-					<div style="color: #fff; position: absolute; font-size: 30pt; top: 30px; left: 30px" id="t3A3">VELOCIDAD MACH<div>
+					<div style="color: #fff; position: absolute; font-size: 30pt; top: 30px; left: 30px" id="t3A3">ALTURA<div>
 					<div style="color: #fff; position: absolute; font-size: 80pt; top: 90px; left: 30px" id="t33"><div>
 					
 					</div></div>
@@ -76,7 +76,7 @@
 				<div class="instrument vario" style="height: 300px; width: 500px;">
 					<img src="img/fi_box.png" style="margin-left: -30px; width: 100% !important; height: 100% !important; " alt="">
 					<div style="color: #fff; position: absolute; font-size: 30pt; top: 30px; left: 30px" id="t3AAA">ETA ATERRIZAJE<div>
-					<div style="color: #fff; position: absolute; font-size: 80pt; top: 90px; left: 30px" id="t5"><div>
+					<div style="color: #fff; position: absolute; font-size: 40pt; top: 90px; left: 30px" id="t5"><div>
 					
 					</div></div>
 			</div>
@@ -123,6 +123,39 @@
 </body>
 
 <script type="text/javascript">
+
+
+function estimatePitchAndRoll(data1, data2) {
+    // Extract relevant data
+    const vspeed1 = data1.flightInfo.vspeed;
+    const vspeed2 = data2.flightInfo.vspeed;
+    const hspeed1 = data1.flightInfo.hspeed;
+    const hspeed2 = data2.flightInfo.hspeed;
+    const course1 = data1.flightInfoFIG2.flight.gps.course;
+    const course2 = data2.flightInfoFIG2.flight.gps.course;
+    const altitude1 = data1.flightInfo.altitude;
+    const altitude2 = data2.flightInfo.altitude;
+
+    // Average speeds for stability
+    const avgVSpeed = (vspeed1 + vspeed2) / 2;
+    const avgHSpeed = (hspeed1 + hspeed2) / 2;
+
+    // Pitch Calculation (in degrees)
+    const pitch = Math.atan(avgVSpeed / avgHSpeed) * (180 / Math.PI);
+
+    // Roll Calculation - Simplified estimation
+    // Note: This is a very rough estimate, actual roll calculation would require more data
+    var g = 9.81;
+    const hSpeedMetersPerSecond = avgHSpeed * 0.514444;
+
+	const deltaCourse = Math.abs(course1 - course2);
+    const turnRadius = hSpeedMetersPerSecond * hSpeedMetersPerSecond / (g * Math.tan(deltaCourse * Math.PI / 180));
+    const bankAngle = Math.atan(hSpeedMetersPerSecond * hSpeedMetersPerSecond / (turnRadius * g));
+    const roll = bankAngle * (180 / Math.PI); // Convert to degrees
+
+    return { pitch: pitch.toFixed(2), roll: roll.toFixed(2) };
+}
+
 	var old;
 	var odata={};
 	odata.altitude_feet=0;
@@ -132,39 +165,43 @@
 	var variometer = $.flightIndicator('#vario', 'variometer', {size:300, vario:-5, showBox:true});
 	var airspeed = $.flightIndicator('#speed', 'airspeed', {size:300, showBox: true});
 	var altimeter = $.flightIndicator('#alt', 'altimeter',{size:300,size:300, });
-
+$.getJSON("https://wifi.inflightinternet.com/abp/v2/statusTray?fig2=true", function(data){
+	old=data;
+});
     // do something with your map, add layers etc.
     function update(){
 
-    	$.getJSON("http://services.inflightpanasonic.aero/inflight/services/flightdata/v2/flightdata", function(data){
+
+    	$.getJSON("https://wifi.inflightinternet.com/abp/v2/statusTray?fig2=true", function(data){
+
+    		console.log(data['Response'])
 
 //$("#bx1").html("Altura: "+data.altitude_feet+"<br>velocidad: "+data.ground_speed_knots+"<br>Tiempo a destino: "+data.time_to_destination_minutes+"<br>Coordenadaas: "+JSON.stringify(data.current_coordinates));
-airspeed.setAirSpeed(data.ground_speed_knots/10);
-altimeter.setAltitude(data.altitude_feet/10);
-heading.setHeading(data.true_heading_degree);
-$("#t1").html(data.departure_iata);
-$("#t2").html(data.destination_iata);
-$("#t3").html(data.time_to_destination_minutes.toString()+"min.");
-$("#t4").html(data.distance_to_destination_nautical_miles);
-$("#t33").html(data.flight_speed_mach);
-$("#t5").html(data.estimated_arrival_time_utc);
+airspeed.setAirSpeed(data['Response']['flightInfo']['hspeed']);
+altimeter.setAltitude(data['Response']['systemInfo']['aboveSeaLevel']);
+heading.setHeading(data['Response'].flightInfoFIG2.flight.gps.course);
+$("#t1").html(data['Response']['flightInfo']['departureAirportCodeIata']);
+$("#t2").html(data['Response']['flightInfo']['destinationAirportCodeIata']);
+$("#t3").html(data['Response']['systemInfo']['timeToLand'].toString()+"min.");
 
-if(odata.altitude_feet!=data.altitude_feet){
+$("#t4").html((Math.round(parseFloat(data['Response'].flightInfoFIG2.flight.gps.calculations.distance_to_arrival)*10)/10).toString());
+$("#t33").html(Math.round(data['Response']['systemInfo']['aboveSeaLevel']).toString());
+$("#t5").html(data['Response'].flightInfoFIG2.arrival.time.computed);
+variometer.setVario(data['Response']['systemInfo']['verticalVelocity']);
 
-	variometer.setVario((data.altitude_feet/1000-old/1000)/(Date.now()/1000/60-oldd/1000/60))
-	console.log((data.altitude_feet/1000-old/1000)/(Date.now()/1000/60-oldd/1000/60))
+pitchAndroll = estimatePitchAndRoll(old['Response'],data['Response']);
+first_attitude.setPitch(pitchAndroll.pitch);
+first_attitude.setRoll(pitchAndroll.roll);
+console.log(pitchAndroll)
+old=data;
 
-	old=data.altitude_feet;
-	oldd=Date.now();
-	update();
-	odata=data;
-}
+
 });
 
 
     }
     update();
-    setTimeout(update,2435);
+    setInterval(update,800);
 
 </script>
 </html>
